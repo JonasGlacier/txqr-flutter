@@ -2,3 +2,4 @@ txqr.framework
 .DS_Store
 *.aar
 *.jar
+/.cursor
