@@ -82,8 +82,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           final base64Content = lines.sublist(1).join('\n');
           final fileBytes = base64Decode(base64Content);
 
-          // Save file to app documents directory
-          final dir = await getApplicationDocumentsDirectory();
+          // Save file to Download/TXQR directory
+          final dir = await _getDownloadTxqrDirectory();
           final filePath = '${dir.path}/$fileName';
           final file = File(filePath);
           await file.writeAsBytes(fileBytes);
@@ -133,6 +133,35 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       _speed = '';
       _statusText = 'Point camera at animated QR code';
     });
+  }
+
+  /// Get or create the Download/TXQR directory for saving received files.
+  Future<Directory> _getDownloadTxqrDirectory() async {
+    Directory? baseDir;
+    
+    // Try to get external storage directory (usually /storage/emulated/0)
+    if (Platform.isAndroid) {
+      baseDir = await getExternalStorageDirectory();
+      if (baseDir != null) {
+        // Navigate from /storage/emulated/0/Android/data/.../files to /storage/emulated/0/Download
+        final pathParts = baseDir.path.split('/');
+        final storageIndex = pathParts.indexOf('Android');
+        if (storageIndex > 0) {
+          final storagePath = pathParts.sublist(0, storageIndex).join('/');
+          baseDir = Directory('$storagePath/Download/TXQR');
+        }
+      }
+    }
+    
+    // Fallback to app documents if we couldn't get Downloads
+    baseDir ??= Directory('${(await getApplicationDocumentsDirectory()).path}/TXQR');
+    
+    // Create directory if it doesn't exist
+    if (!await baseDir.exists()) {
+      await baseDir.create(recursive: true);
+    }
+    
+    return baseDir;
   }
 
   @override

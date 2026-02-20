@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'screens/home_screen.dart';
 
 void main() {
@@ -11,15 +12,31 @@ class TxqrApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'TXQR',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
-        brightness: Brightness.dark,
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
+    return DynamicColorBuilder(
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        return MaterialApp(
+          title: 'TXQR',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: lightDynamic ??
+                ColorScheme.fromSeed(
+                  seedColor: Colors.indigo,
+                  brightness: Brightness.light,
+                ),
+            useMaterial3: true,
+          ),
+          darkTheme: ThemeData(
+            colorScheme: darkDynamic ??
+                ColorScheme.fromSeed(
+                  seedColor: Colors.indigo,
+                  brightness: Brightness.dark,
+                ),
+            useMaterial3: true,
+          ),
+          themeMode: ThemeMode.system,
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }

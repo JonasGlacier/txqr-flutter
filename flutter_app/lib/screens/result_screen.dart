@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:share_plus/share_plus.dart';
 
 class ResultScreen extends StatelessWidget {
@@ -23,6 +24,7 @@ class ResultScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final sizeStr = _humanSize(fileSize);
+    final isDownloadFolder = filePath.contains('/Download/TXQR/');
 
     return Scaffold(
       appBar: AppBar(
@@ -110,7 +112,9 @@ class ResultScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Saved to app directory',
+                          isDownloadFolder
+                              ? 'Saved to Download/TXQR/'
+                              : 'Saved to app directory',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
@@ -183,11 +187,32 @@ class ResultScreen extends StatelessWidget {
       if (!await file.exists()) {
         throw Exception('File not found');
       }
-      // Share as "open with" on Android
-      await Share.shareXFiles(
-        [XFile(filePath)],
-        text: fileName,
-      );
+      
+      // Open the file with the default app
+      final result = await OpenFilex.open(filePath);
+      
+      // Check if the file was opened successfully
+      if (result.type != ResultType.done && context.mounted) {
+        String message = 'Could not open file';
+        if (result.type == ResultType.noAppToOpen) {
+          message = 'No app found to open this file type';
+        } else if (result.type == ResultType.fileNotFound) {
+          message = 'File not found';
+        } else if (result.type == ResultType.permissionDenied) {
+          message = 'Permission denied';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Share Instead',
+              onPressed: () => _shareFile(context),
+            ),
+          ),
+        );
+      }
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

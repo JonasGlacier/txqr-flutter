@@ -19,7 +19,7 @@ class HomeScreen extends StatelessWidget {
             colors: [
               theme.colorScheme.surface,
               theme.colorScheme.surface,
-              theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+              theme.colorScheme.primaryContainer.withValues(alpha: 0.30),
             ],
           ),
         ),
