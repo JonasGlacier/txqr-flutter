@@ -22,7 +22,7 @@ android {
     defaultConfig {
         applicationId = "com.divan.txqr_app"
         // mobile_scanner requires minSdk 21; Go gomobile AAR requires 21+
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
