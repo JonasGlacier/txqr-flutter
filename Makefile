@@ -3,4 +3,4 @@ gomobile:
 
 aar:
 	mkdir -p flutter_app/android/app/libs
-	gomobile bind -target=android -o flutter_app/android/app/libs/txqr.aar github.com/divan/txqr/mobile
+	gomobile bind -target=android -androidapi=21 -o flutter_app/android/app/libs/txqr.aar github.com/divan/txqr/mobile
