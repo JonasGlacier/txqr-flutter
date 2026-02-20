@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'screens/scanner_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +19,7 @@ class TxqrApp extends StatelessWidget {
         brightness: Brightness.dark,
         useMaterial3: true,
       ),
-      home: const ScannerScreen(),
+      home: const HomeScreen(),
     );
   }
 }

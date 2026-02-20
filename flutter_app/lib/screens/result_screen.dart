@@ -1,15 +1,20 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 class ResultScreen extends StatelessWidget {
-  final String data;
+  final String fileName;
+  final String filePath;
+  final int fileSize;
   final String totalTime;
   final String speed;
 
   const ResultScreen({
     super.key,
-    required this.data,
+    required this.fileName,
+    required this.filePath,
+    required this.fileSize,
     required this.totalTime,
     required this.speed,
   });
@@ -17,7 +22,7 @@ class ResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dataSize = _humanSize(data.length);
+    final sizeStr = _humanSize(fileSize);
 
     return Scaffold(
       appBar: AppBar(
@@ -29,6 +34,24 @@ class ResultScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Success indicator
+            Center(
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  size: 48,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
             // Stats cards
             Row(
               children: [
@@ -47,55 +70,75 @@ class ResultScreen extends StatelessWidget {
                 _StatCard(
                   icon: Icons.data_usage_outlined,
                   label: 'Size',
-                  value: dataSize,
+                  value: sizeStr,
                 ),
               ],
             ),
             const SizedBox(height: 24),
 
-            // Data preview
+            // File info
             Text(
-              'Decoded Data',
+              'Received File',
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: SingleChildScrollView(
-                  child: SelectableText(
-                    data,
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 13,
-                      height: 1.5,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.insert_drive_file_outlined,
+                    size: 40,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fileName,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Saved to app directory',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
+            const Spacer(),
 
             // Action buttons
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => _copyToClipboard(context),
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copy'),
+                    onPressed: () => _shareFile(context),
+                    icon: const Icon(Icons.share),
+                    label: const Text('Share'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => _share(),
-                    icon: const Icon(Icons.share),
-                    label: const Text('Share'),
+                    onPressed: () => _openFile(context),
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Open'),
                   ),
                 ),
               ],
@@ -104,27 +147,56 @@ class ResultScreen extends StatelessWidget {
             TextButton.icon(
               onPressed: () => Navigator.pop(context),
               icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Scan Again'),
+              label: const Text('Receive Another'),
             ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
     );
   }
 
-  void _copyToClipboard(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: data));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Copied to clipboard'),
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
-    );
+  Future<void> _shareFile(BuildContext context) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('File not found');
+      }
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: fileName,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error sharing file: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
-  void _share() {
-    Share.share(data);
+  Future<void> _openFile(BuildContext context) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('File not found');
+      }
+      // Share as "open with" on Android
+      await Share.shareXFiles(
+        [XFile(filePath)],
+        text: fileName,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error opening file: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   String _humanSize(int bytes) {

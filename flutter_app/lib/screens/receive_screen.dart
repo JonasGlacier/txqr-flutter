@@ -1,18 +1,22 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../services/txqr_service.dart';
 import '../widgets/qr_scanner_overlay.dart';
 import 'result_screen.dart';
 
-class ScannerScreen extends StatefulWidget {
-  const ScannerScreen({super.key});
+class ReceiveScreen extends StatefulWidget {
+  const ReceiveScreen({super.key});
 
   @override
-  State<ScannerScreen> createState() => _ScannerScreenState();
+  State<ReceiveScreen> createState() => _ReceiveScreenState();
 }
 
-class _ScannerScreenState extends State<ScannerScreen> {
+class _ReceiveScreenState extends State<ReceiveScreen> {
   final TxqrService _txqr = TxqrService();
   late final MobileScannerController _cameraController;
 
@@ -68,20 +72,38 @@ class _ScannerScreenState extends State<ScannerScreen> {
           final data = await _txqr.getData();
           final totalTime = await _txqr.getTotalTime();
 
+          // Parse payload: filename\nbase64content
+          final lines = data.split('\n');
+          if (lines.length < 2) {
+            throw Exception('Invalid payload format');
+          }
+
+          final fileName = lines[0];
+          final base64Content = lines.sublist(1).join('\n');
+          final fileBytes = base64Decode(base64Content);
+
+          // Save file to app documents directory
+          final dir = await getApplicationDocumentsDirectory();
+          final filePath = '${dir.path}/$fileName';
+          final file = File(filePath);
+          await file.writeAsBytes(fileBytes);
+
           if (!mounted) return;
           final nav = Navigator.of(context);
           await _cameraController.stop();
           await nav.push(
             MaterialPageRoute(
               builder: (_) => ResultScreen(
-                data: data,
+                fileName: fileName,
+                filePath: filePath,
+                fileSize: fileBytes.length,
                 totalTime: totalTime,
                 speed: speed,
               ),
             ),
           );
           // Returned from result screen – reset for next scan
-          await _txqr.reset();
+          await _txqr.resetDecoder();
           setState(() {
             _progress = 0;
             _speed = '';
@@ -91,6 +113,13 @@ class _ScannerScreenState extends State<ScannerScreen> {
         }
       } catch (e) {
         debugPrint('TXQR decode error: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       } finally {
         _processing = false;
       }
@@ -98,7 +127,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   Future<void> _onReset() async {
-    await _txqr.reset();
+    await _txqr.resetDecoder();
     setState(() {
       _progress = 0;
       _speed = '';
@@ -139,8 +168,12 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                     const Text(
-                      'TXQR Scanner',
+                      'Receive File',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
