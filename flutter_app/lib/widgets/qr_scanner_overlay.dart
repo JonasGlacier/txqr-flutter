@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 class QrScannerOverlay extends StatelessWidget {
   final double scanWindowSize;
   final double progress; // 0.0 – 1.0
+  final bool isDetected;
 
   const QrScannerOverlay({
     super.key,
     this.scanWindowSize = 280,
     this.progress = 0,
+    this.isDetected = false,
   });
 
   @override
@@ -18,6 +20,7 @@ class QrScannerOverlay extends StatelessWidget {
       painter: _OverlayPainter(
         scanWindowSize: scanWindowSize,
         progress: progress,
+        isDetected: isDetected,
       ),
     );
   }
@@ -26,8 +29,13 @@ class QrScannerOverlay extends StatelessWidget {
 class _OverlayPainter extends CustomPainter {
   final double scanWindowSize;
   final double progress;
+  final bool isDetected;
 
-  _OverlayPainter({required this.scanWindowSize, required this.progress});
+  _OverlayPainter({
+    required this.scanWindowSize,
+    required this.progress,
+    required this.isDetected,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -54,7 +62,7 @@ class _OverlayPainter extends CustomPainter {
     const bracketLen = 32.0;
     const bracketStroke = 4.0;
     final bracketPaint = Paint()
-      ..color = Colors.white
+      ..color = isDetected ? Colors.green : Colors.red
       ..strokeWidth = bracketStroke
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -98,6 +106,6 @@ class _OverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _OverlayPainter oldDelegate) {
-    return oldDelegate.progress != progress;
+    return oldDelegate.progress != progress || oldDelegate.isDetected != isDetected;
   }
 }

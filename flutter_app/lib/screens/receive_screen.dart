@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -24,6 +25,8 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
   String _speed = '';
   String _statusText = 'Point camera at animated QR code';
   bool _processing = false;
+  bool _isDetected = false;
+  Timer? _detectionTimer;
 
   @override
   void initState() {
@@ -37,11 +40,23 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
 
   @override
   void dispose() {
+    _detectionTimer?.cancel();
     _cameraController.dispose();
     super.dispose();
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
+    // Reset detection timer
+    _detectionTimer?.cancel();
+    if (!_isDetected) {
+      setState(() => _isDetected = true);
+    }
+    _detectionTimer = Timer(const Duration(milliseconds: 500), () {
+      if (mounted && _isDetected) {
+        setState(() => _isDetected = false);
+      }
+    });
+
     if (_processing) return;
 
     for (final barcode in capture.barcodes) {
@@ -132,6 +147,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       _progress = 0;
       _speed = '';
       _statusText = 'Point camera at animated QR code';
+      _isDetected = false;
     });
   }
 
@@ -176,7 +192,10 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
           ),
 
           // Overlay with scan window & progress arc
-          QrScannerOverlay(progress: _progress / 100),
+          QrScannerOverlay(
+            progress: _progress / 100,
+            isDetected: _isDetected,
+          ),
 
           // Bottom info panel
           Positioned(
